@@ -133,6 +133,8 @@ async function testInvalidFlagsRejected() {
     { args: ["--sample-rate", "1.5"], label: "out-of-range --sample-rate" },
     { args: ["--top", "abc"], label: "non-numeric --top" },
     { args: ["--top", "0"], label: "zero --top" },
+    { args: ["--top", "5abc"], label: "--top with trailing garbage" },
+    { args: ["--sample-rate", "0.5xyz"], label: "--sample-rate with trailing garbage" },
     { args: ["--sort", "banana"], label: "invalid --sort" },
   ];
   for (const c of cases) {

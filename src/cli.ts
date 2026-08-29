@@ -22,15 +22,15 @@ program
   .option("--sort <bytes|count>", "sort by bytes or count", "bytes")
   .option("--json", "emit JSON output")
   .action(async (redisUrl: string, opts) => {
-    const sampleRate = parseFloat(opts.sampleRate);
+    const sampleRate = Number(opts.sampleRate);
     if (Number.isNaN(sampleRate) || sampleRate < 0 || sampleRate > 1) {
       process.stderr.write(`Invalid --sample-rate '${opts.sampleRate}': must be a number between 0 and 1\n`);
       process.exitCode = 1;
       return;
     }
 
-    const top = parseInt(opts.top, 10);
-    if (Number.isNaN(top) || top < 1) {
+    const top = Number(opts.top);
+    if (!Number.isInteger(top) || top < 1) {
       process.stderr.write(`Invalid --top '${opts.top}': must be a positive integer\n`);
       process.exitCode = 1;
       return;
