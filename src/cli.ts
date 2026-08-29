@@ -1,15 +1,20 @@
 #!/usr/bin/env node
+import { readFileSync } from "fs";
+import { join } from "path";
 import { Command } from "commander";
 import { createClient } from "./redis";
 import { scan } from "./scanner";
 import { profile } from "./profiler";
 import { report } from "./reporter";
 
+const pkg = JSON.parse(readFileSync(join(__dirname, "../package.json"), "utf8"));
+
 const program = new Command();
 
 program
   .name("redis-pattern-profiler")
   .description("Scan Redis keyspace and aggregate MEMORY USAGE per key pattern")
+  .version(pkg.version)
   .argument("[redis-url]", "Redis URL", "redis://localhost:6379")
   .option("--prefix <string>", "scan only keys with this prefix")
   .option("--sample-rate <number>", "probabilistic sampling fraction (0-1)", "1.0")
@@ -17,6 +22,26 @@ program
   .option("--sort <bytes|count>", "sort by bytes or count", "bytes")
   .option("--json", "emit JSON output")
   .action(async (redisUrl: string, opts) => {
+    const sampleRate = Number(opts.sampleRate);
+    if (Number.isNaN(sampleRate) || sampleRate < 0 || sampleRate > 1) {
+      process.stderr.write(`Invalid --sample-rate '${opts.sampleRate}': must be a number between 0 and 1\n`);
+      process.exitCode = 1;
+      return;
+    }
+
+    const top = Number(opts.top);
+    if (!Number.isInteger(top) || top < 1) {
+      process.stderr.write(`Invalid --top '${opts.top}': must be a positive integer\n`);
+      process.exitCode = 1;
+      return;
+    }
+
+    if (opts.sort !== "bytes" && opts.sort !== "count") {
+      process.stderr.write(`Invalid --sort '${opts.sort}': must be 'bytes' or 'count'\n`);
+      process.exitCode = 1;
+      return;
+    }
+
     const client = createClient(redisUrl);
 
     try {
@@ -24,10 +49,10 @@ program
     } catch (err) {
       process.stderr.write(`Connection error: ${(err as Error).message}\n`);
       client.disconnect();
-      process.exit(1);
+      process.exitCode = 1;
+      return;
     }
 
-    const sampleRate = parseFloat(opts.sampleRate);
     const batches = scan(client, {
       prefix: opts.prefix,
       sampleRate,
@@ -37,7 +62,7 @@ program
     const result = await profile(client, batches);
 
     report(result, {
-      top: parseInt(opts.top, 10),
+      top,
       sort: opts.sort as "bytes" | "count",
       json: !!opts.json,
     });
@@ -47,5 +72,5 @@ program
 
 program.parseAsync(process.argv).catch((err) => {
   process.stderr.write(`${(err as Error).message}\n`);
-  process.exit(1);
+  process.exitCode = 1;
 });
