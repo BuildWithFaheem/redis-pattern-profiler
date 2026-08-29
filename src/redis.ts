@@ -4,7 +4,7 @@ export function createClient(url: string): Redis {
   const client = new Redis(url, {
     lazyConnect: false,
     enableReadyCheck: true,
-    connectTimeout: 5000,
+    connectTimeout: 2000,
     // ponytail: fail fast after a few attempts instead of ioredis's default infinite reconnect loop
     retryStrategy: (times) => (times >= 3 ? null : Math.min(times * 200, 1000)),
   });

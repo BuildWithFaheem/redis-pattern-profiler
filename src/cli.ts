@@ -25,18 +25,21 @@ program
     const sampleRate = parseFloat(opts.sampleRate);
     if (Number.isNaN(sampleRate) || sampleRate < 0 || sampleRate > 1) {
       process.stderr.write(`Invalid --sample-rate '${opts.sampleRate}': must be a number between 0 and 1\n`);
-      process.exit(1);
+      process.exitCode = 1;
+      return;
     }
 
     const top = parseInt(opts.top, 10);
     if (Number.isNaN(top) || top < 1) {
       process.stderr.write(`Invalid --top '${opts.top}': must be a positive integer\n`);
-      process.exit(1);
+      process.exitCode = 1;
+      return;
     }
 
     if (opts.sort !== "bytes" && opts.sort !== "count") {
       process.stderr.write(`Invalid --sort '${opts.sort}': must be 'bytes' or 'count'\n`);
-      process.exit(1);
+      process.exitCode = 1;
+      return;
     }
 
     const client = createClient(redisUrl);
@@ -46,7 +49,8 @@ program
     } catch (err) {
       process.stderr.write(`Connection error: ${(err as Error).message}\n`);
       client.disconnect();
-      process.exit(1);
+      process.exitCode = 1;
+      return;
     }
 
     const batches = scan(client, {
@@ -68,5 +72,5 @@ program
 
 program.parseAsync(process.argv).catch((err) => {
   process.stderr.write(`${(err as Error).message}\n`);
-  process.exit(1);
+  process.exitCode = 1;
 });
